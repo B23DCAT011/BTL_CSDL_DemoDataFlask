@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Danh sách Laptop</title>
+</head>
+
+<body>
+  <h1>Danh sách Laptop</h1>
+  {% if laptops %}
+  <table border="1">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Tên Laptop</th>
+        <th>Hãng</th>
+        <th>Cấu Hình</th>
+        <th>Giá Bán</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for laptop in laptops %}
+      <tr>
+        <td>{{ laptop.MaSP }}</td>
+        <td>{{ laptop.TenSP }}</td>
+        <td>{{ laptop.Hang }}</td>
+        <td>{{ laptop.CauHinh }}</td>
+        <td>{{ "{:,.0f}".format(laptop.GiaBan) }} VNĐ</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>Không có laptop nào trong danh sách.</p>
+  {% endif %}
+
+  {% if message %}
+  <p style="color: red;">{{ message }}</p>
+  {% endif %}
+</body>
+
+</html>

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Tìm Kiếm Nhân Viên</title>
+  <meta charset="UTF-8">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #000;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background-color: #fff;
+      border: 2px solid #000;
+    }
+
+    .header {
+      background-color: #000;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+      border-bottom: 2px solid #000;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .header p {
+      font-size: 14px;
+      margin-top: 5px;
+    }
+
+    .search-section {
+      padding: 20px;
+      background-color: #fff;
+      border-bottom: 2px solid #000;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 10px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 10px;
+      font-size: 14px;
+      border: 2px solid #000;
+      background-color: #fff;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border: 2px solid #000;
+    }
+
+    .search-btn {
+      padding: 10px 30px;
+      background-color: #000;
+      color: #fff;
+      border: 2px solid #000;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .search-btn:hover {
+      background-color: #fff;
+      color: #000;
+    }
+
+    .search-btn:active {
+      background-color: #333;
+      color: #fff;
+    }
+
+    .results-section {
+      padding: 20px;
+      background-color: #fff;
+    }
+
+    .search-info {
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+
+    .results-count {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 16px;
+      color: #000;
+      font-weight: bold;
+    }
+
+    .employee-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 15px;
+    }
+
+    .employee-card {
+      background: #fff;
+      border: 2px solid #000;
+      padding: 15px;
+    }
+
+    .employee-card:hover {
+      background-color: #f5f5f5;
+    }
+
+    .employee-header {
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #000;
+    }
+
+    .employee-name {
+      font-size: 16px;
+      font-weight: bold;
+      color: #000;
+      margin-bottom: 5px;
+    }
+
+    .employee-id {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .employee-details {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .detail-row {
+      display: flex;
+      font-size: 13px;
+      color: #000;
+    }
+
+    .detail-label {
+      min-width: 100px;
+      font-weight: bold;
+    }
+
+    .detail-value {
+      color: #333;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border: 1px solid #000;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .status-active {
+      background-color: #000;
+      color: #fff;
+    }
+
+    .status-inactive {
+      background-color: #fff;
+      color: #000;
+    }
+
+    .no-results {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+
+    .no-results-text {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #000;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #000;
+      font-size: 16px;
+    }
+
+    .error-message {
+      background-color: #f5f5f5;
+      color: #000;
+      padding: 15px;
+      border: 2px solid #000;
+      margin: 20px 0;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Tìm Kiếm Nhân Viên</h1>
+      <p>Tìm kiếm theo tên hoặc số điện thoại</p>
+    </div>
+
+    <div class="search-section">
+      <div class="search-box">
+        <input type="text" id="searchInput" class="search-input" placeholder="Nhập tên hoặc số điện thoại nhân viên..."
+          autofocus>
+        <button class="search-btn" onclick="searchEmployees()">Tìm Kiếm</button>
+      </div>
+      <div class="search-info">
+        Ví dụ: "Nguyễn", "093", "dao"
+      </div>
+    </div>
+
+    <div class="results-section">
+      <div id="resultsCount" class="results-count" style="display: none;"></div>
+      <div id="resultsContainer"></div>
+    </div>
+  </div>
+
+  <script>
+    // Tìm kiếm khi nhấn Enter
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        searchEmployees();
+      }
+    });
+
+    // Hàm chuẩn hóa chuỗi (loại bỏ dấu tiếng Việt)
+    function removeVietnameseTones(str) {
+      if (!str) return '';
+      str = str.toLowerCase();
+      str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+      str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+      str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+      str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+      str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+      str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+      str = str.replace(/đ/g, "d");
+      return str;
+    }
+
+    async function searchEmployees() {
+      const searchTerm = document.getElementById('searchInput').value.trim();
+      const resultsContainer = document.getElementById('resultsContainer');
+      const resultsCount = document.getElementById('resultsCount');
+
+      if (!searchTerm) {
+        resultsContainer.innerHTML = `
+          <div class="no-results">
+            <div class="no-results-text">Nhập từ khóa để tìm kiếm nhân viên</div>
+          </div>
+        `;
+        resultsCount.style.display = 'none';
+        return;
+      }
+
+      // Hiển thị loading
+      resultsContainer.innerHTML = '<div class="loading">Đang tìm kiếm...</div>';
+      resultsCount.style.display = 'none';
+
+      try {
+        const response = await fetch(`/api/search_employees?q=${encodeURIComponent(searchTerm)}`);
+        const result = await response.json();
+
+        if (response.ok && result.status === 'success') {
+          const employees = result.data;
+
+          if (employees.length === 0) {
+            resultsContainer.innerHTML = `
+              <div class="no-results">
+                <div class="no-results-text">Không tìm thấy nhân viên phù hợp</div>
+                <p style="color: #666; margin-top: 10px;">Thử tìm với từ khóa khác</p>
+              </div>
+            `;
+            resultsCount.style.display = 'none';
+          } else {
+            // Hiển thị số lượng kết quả
+            resultsCount.textContent = `Tìm thấy ${employees.length} nhân viên`;
+            resultsCount.style.display = 'block';
+
+            // Hiển thị danh sách nhân viên
+            resultsContainer.innerHTML = `
+              <div class="employee-grid">
+                ${employees.map(emp => createEmployeeCard(emp)).join('')}
+              </div>
+            `;
+          }
+        } else {
+          resultsContainer.innerHTML = `
+            <div class="error-message">
+              ${result.message || 'Có lỗi xảy ra khi tìm kiếm'}
+            </div>
+          `;
+          resultsCount.style.display = 'none';
+        }
+      } catch (error) {
+        resultsContainer.innerHTML = `
+          <div class="error-message">
+            Lỗi kết nối: ${error.message}
+          </div>
+        `;
+        resultsCount.style.display = 'none';
+      }
+    }
+
+    function createEmployeeCard(emp) {
+      const statusClass = emp.TrangThai === 'Active' ? 'status-active' : 'status-inactive';
+      const statusText = emp.TrangThai === 'Active' ? 'Đang làm việc' : 'Nghỉ việc';
+
+      return `
+        <div class="employee-card">
+          <div class="employee-header">
+            <div class="employee-name">${emp.HoTen || 'N/A'}</div>
+            <div class="employee-id">Mã NV: ${emp.MaNV}</div>
+          </div>
+          <div class="employee-details">
+            <div class="detail-row">
+              <span class="detail-label">SĐT:</span>
+              <span class="detail-value">${emp.SDT || 'Chưa có'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Email:</span>
+              <span class="detail-value">${emp.Email || 'Chưa có'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Giới tính:</span>
+              <span class="detail-value">${emp.GioiTinh || 'Chưa rõ'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Chức vụ:</span>
+              <span class="detail-value">${emp.TenChucVu || 'Chưa có'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Lương cơ bản:</span>
+              <span class="detail-value">${emp.LuongCoBan ? emp.LuongCoBan.toLocaleString('vi-VN') + ' VNĐ' : 'Chưa có'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Trạng thái:</span>
+              <span class="status-badge ${statusClass}">${statusText}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Hiển thị thông báo ban đầu
+    document.getElementById('resultsContainer').innerHTML = `
+      <div class="no-results">
+        <div class="no-results-text">Nhập từ khóa để tìm kiếm nhân viên</div>
+      </div>
+    `;
+  </script>
+</body>
+
+</html>

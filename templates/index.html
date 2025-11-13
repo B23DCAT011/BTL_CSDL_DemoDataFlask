@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <h1>Check Database Connection</h1>
+  {% if db_status %}
+  <p style="color: green;">Database connection successful!</p>
+  {% else %}
+  <p style="color: red;">Failed to connect to the database.</p>
+  {% endif %}
+
+  <ul>
+    <li><a href="/LapTop">View Laptop List</a></li>
+    <li><a href="/add_KhachHang">Add New Customer</a></li>
+    <li><a href="/add_DonHang">Create Order</a></li>
+    <li><a href="/search_NhanVien">Search Employees</a></li>
+  </ul>
+
+</body>
+
+</html>

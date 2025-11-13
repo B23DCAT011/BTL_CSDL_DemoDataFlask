@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Tạo Đơn Hàng</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 300px;
+      padding: 8px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .item {
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin: 10px 0;
+    }
+
+    #result {
+      margin-top: 20px;
+      padding: 10px;
+    }
+
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+
+<body>
+  <a href="/add_KhachHang">Tạo Khách Hàng</a>
+  <h1>Tạo Đơn Hàng Mới</h1>
+
+
+  <form id="orderForm">
+    <div class="form-group">
+      <label>Mã Khách Hàng:</label>
+      <input type="text" id="MaKH" required>
+    </div>
+
+    <div class="form-group">
+      <label>Mã Nhân Viên:</label>
+      <input type="text" id="MaNV" required>
+    </div>
+
+    <div class="form-group">
+      <label>Ngày Giao:</label>
+      <input type="date" id="NgayGiao" required>
+    </div>
+
+    <div class="form-group">
+      <label>Trạng Thái:</label>
+      <select id="TrangThaiXuLy">
+        <option value="Chưa xử lý">Chưa xử lý</option>
+        <option value="Đang giao">Đang giao</option>
+        <option value="Hoàn tất">Hoàn tất</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Ghi Chú:</label>
+      <textarea id="GhiChu" rows="3"></textarea>
+    </div>
+
+    <h3>Chi Tiết Đơn Hàng</h3>
+    <div id="items">
+      <div class="item">
+        <label>Mã Sản Phẩm:</label>
+        <input type="text" class="MaSP" required onblur="fetchPrice(this)">
+        <span class="product-info"></span>
+        <label>Số Lượng:</label>
+        <input type="number" class="SoLuong" min="1" value="1" required>
+        <label>Giá Bán:</label>
+        <input type="number" class="GiaBan" min="0" step="1000" required readonly style="background-color: #f0f0f0;">
+      </div>
+    </div>
+
+    <button type="button" onclick="addItem()">Thêm Sản Phẩm</button>
+    <button type="submit">Tạo Đơn Hàng</button>
+  </form>
+
+  <div id="result"></div>
+
+  <style>
+    .product-info {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+      font-style: italic;
+    }
+
+    .product-info.success {
+      color: #155724;
+    }
+
+    .product-info.error {
+      color: #721c24;
+    }
+  </style>
+
+  <script>
+    async function fetchPrice(input) {
+      const maSP = input.value.trim();
+      const itemDiv = input.closest('.item');
+      const giaBanInput = itemDiv.querySelector('.GiaBan');
+      const infoSpan = itemDiv.querySelector('.product-info');
+
+      if (!maSP) {
+        giaBanInput.value = '';
+        infoSpan.textContent = '';
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/get_gia_sanpham/${maSP}`);
+        const result = await response.json();
+
+        if (response.ok) {
+          giaBanInput.value = result.GiaBan;
+          infoSpan.className = 'product-info success';
+          infoSpan.textContent = `✓ ${result.TenSP} - Tồn kho: ${result.TonKho}`;
+        } else {
+          giaBanInput.value = '';
+          infoSpan.className = 'product-info error';
+          infoSpan.textContent = `✗ ${result.message}`;
+        }
+      } catch (error) {
+        giaBanInput.value = '';
+        infoSpan.className = 'product-info error';
+        infoSpan.textContent = '✗ Lỗi kết nối';
+      }
+    }
+
+    function addItem() {
+      const itemHtml = `
+                <div class="item">
+                    <label>Mã Sản Phẩm:</label>
+                    <input type="text" class="MaSP" required onblur="fetchPrice(this)">
+                    <span class="product-info"></span>
+                    <label>Số Lượng:</label>
+                    <input type="number" class="SoLuong" min="1" value="1" required>
+                    <label>Giá Bán:</label>
+                    <input type="number" class="GiaBan" min="0" step="1000" required readonly style="background-color: #f0f0f0;">
+                    <button type="button" onclick="this.parentElement.remove()">Xóa</button>
+                </div>
+            `;
+      document.getElementById('items').insertAdjacentHTML('beforeend', itemHtml);
+    }
+
+    document.getElementById('orderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const ChiTiet = [];
+      document.querySelectorAll('.item').forEach(item => {
+        ChiTiet.push({
+          MaSP: item.querySelector('.MaSP').value,
+          SoLuong: parseInt(item.querySelector('.SoLuong').value),
+          GiaBan: parseFloat(item.querySelector('.GiaBan').value)
+        });
+      });
+
+      const orderData = {
+        MaKH: document.getElementById('MaKH').value,
+        MaNV: document.getElementById('MaNV').value,
+        NgayGiao: document.getElementById('NgayGiao').value,
+        TrangThaiXuLy: document.getElementById('TrangThaiXuLy').value,
+        GhiChu: document.getElementById('GhiChu').value,
+        ChiTiet: ChiTiet
+      };
+
+      try {
+        const response = await fetch('/api/add_DonHang', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(orderData)
+        });
+
+        const result = await response.json();
+        const resultDiv = document.getElementById('result');
+
+        if (response.ok) {
+          resultDiv.className = 'success';
+          resultDiv.innerHTML = `✅ Tạo đơn hàng thành công! Mã ĐH: ${result.MaDH}, Tổng tiền: ${result.TongTien.toLocaleString()} VNĐ`;
+          document.getElementById('orderForm').reset();
+        } else {
+          resultDiv.className = 'error';
+          resultDiv.innerHTML = `❌ Lỗi: ${result.message}`;
+        }
+      } catch (error) {
+        document.getElementById('result').className = 'error';
+        document.getElementById('result').innerHTML = `❌ Lỗi kết nối: ${error.message}`;
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Thêm Khách Hàng Mới</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f5f5f5;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #555;
+    }
+
+    .required {
+      color: red;
+    }
+
+    input[type="text"],
+    input[type="tel"],
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #4CAF50;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 20px;
+    }
+
+    .radio-group label {
+      display: inline-flex;
+      align-items: center;
+      font-weight: normal;
+      cursor: pointer;
+    }
+
+    .radio-group input[type="radio"] {
+      margin-right: 5px;
+      width: auto;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    button[type="button"] {
+      background-color: #9E9E9E;
+    }
+
+    button[type="button"]:hover {
+      background-color: #757575;
+    }
+
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 4px;
+      display: none;
+    }
+
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 15px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1> Thêm Khách Hàng Mới</h1>
+
+    <form id="customerForm">
+      <div class="form-group">
+        <label>Họ và Tên <span class="required">*</span></label>
+        <input type="text" id="HoTen" required placeholder="Nhập họ tên khách hàng">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Giới Tính</label>
+          <div class="radio-group">
+            <label>
+              <input type="radio" name="GioiTinh" value="Nam" checked> Nam
+            </label>
+            <label>
+              <input type="radio" name="GioiTinh" value="Nu"> Nữ
+            </label>
+            <label>
+              <input type="radio" name="GioiTinh" value="Khac"> Khác
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Ngày Sinh</label>
+          <input type="date" id="NgaySinh">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Số Điện Thoại <span class="required">*</span></label>
+        <input type="tel" id="SDT" required placeholder="Ví dụ: 0912345678" pattern="[0-9]{10,11}">
+      </div>
+
+      <div class="form-group">
+        <label>Địa Chỉ</label>
+        <textarea id="DiaChi" rows="3" placeholder="Nhập địa chỉ khách hàng"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Trạng Thái</label>
+        <select id="TrangThai">
+          <option value="Active">Active (Hoạt động)</option>
+          <option value="Inactive">Inactive (Không hoạt động)</option>
+        </select>
+      </div>
+
+      <button type="submit"> Thêm Khách Hàng</button>
+      <button type="button" onclick="resetForm()"> Làm Mới</button>
+    </form>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    // Set max date cho ngày sinh (không cho phép tương lai)
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('NgaySinh').setAttribute('max', today);
+
+    function resetForm() {
+      document.getElementById('customerForm').reset();
+      document.getElementById('result').style.display = 'none';
+    }
+
+    document.getElementById('customerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Lấy giá trị giới tính
+      const gioiTinh = document.querySelector('input[name="GioiTinh"]:checked').value;
+
+      // Lấy giá trị ngày sinh (có thể null)
+      const ngaySinh = document.getElementById('NgaySinh').value || null;
+
+      const customerData = {
+        HoTen: document.getElementById('HoTen').value.trim(),
+        GioiTinh: gioiTinh,
+        NgaySinh: ngaySinh,
+        SDT: document.getElementById('SDT').value.trim(),
+        DiaChi: document.getElementById('DiaChi').value.trim() || null,
+        TrangThai: document.getElementById('TrangThai').value
+      };
+
+      console.log('Sending data:', customerData);
+
+      try {
+        const response = await fetch('/api/add_KhachHang', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(customerData)
+        });
+
+        const result = await response.json();
+        const resultDiv = document.getElementById('result');
+
+        if (response.ok) {
+          resultDiv.className = 'success';
+          resultDiv.innerHTML = `✅ Thêm khách hàng thành công!<br>
+                                 Mã KH: ${result.MaKH}<br>
+                                 Họ tên: ${result.HoTen}`;
+          resultDiv.style.display = 'block';
+
+
+          setTimeout(() => {
+            resetForm();
+          }, 2000);
+        } else {
+          resultDiv.className = 'error';
+          resultDiv.innerHTML = `❌ Lỗi: ${result.message}`;
+          resultDiv.style.display = 'block';
+        }
+      } catch (error) {
+        const resultDiv = document.getElementById('result');
+        resultDiv.className = 'error';
+        resultDiv.innerHTML = `❌ Lỗi kết nối: ${error.message}`;
+        resultDiv.style.display = 'block';
+      }
+    });
+
+    // Validate số điện thoại khi nhập
+    document.getElementById('SDT').addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/[^0-9]/g, '');
+    });
+  </script>
+</body>
+
+</html>

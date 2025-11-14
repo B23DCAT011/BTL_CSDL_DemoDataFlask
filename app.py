@@ -4,14 +4,13 @@ import datetime
 import os
 from dotenv import load_dotenv
 
-# Load environment variables từ file .env
+
 load_dotenv()
 
 app = Flask(__name__)
 
 
 def get_db_connection():
-    """Tạo kết nối đến database sử dụng thông tin từ .env"""
     driver = os.getenv('DB_DRIVER', 'ODBC Driver 17 for SQL Server')
     server = os.getenv('DB_SERVER', 'localhost')
     database = os.getenv('DB_DATABASE', 'DataLapTopShop')
@@ -69,7 +68,7 @@ def get_gia_sanpham(maSP):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT MaSP, TenSP, GiaBan, TonKho FROM Laptop WHERE MaSP = ?", (maSP,))
+        cursor.execute("SELECT MaSP, TenSP, GiaBan, Kho FROM Laptop WHERE MaSP = ?", (maSP,))
         result = cursor.fetchone()
         conn.close()
 
@@ -79,7 +78,7 @@ def get_gia_sanpham(maSP):
                 "MaSP": result[0],
                 "TenSP": result[1],
                 "GiaBan": float(result[2]) if result[2] else 0,
-                "TonKho": result[3]
+                "Kho": result[3]
             }), 200
         else:
             return jsonify({"status": "error", "message": "Không tìm thấy sản phẩm"}), 404
@@ -113,6 +112,30 @@ def add_DonHang():
         conn = get_db_connection()
         cursor = conn.cursor()
 
+        for item in ChiTiet:
+            maSP = item.get('MaSP')
+            soLuongDat = item.get('SoLuong')
+            
+            cursor.execute("SELECT TenSP, Kho FROM Laptop WHERE MaSP = ?", (maSP,))
+            result = cursor.fetchone()
+            
+            if not result:
+                conn.close()
+                return jsonify({
+                    "status": "error",
+                    "message": f"Sản phẩm với mã {maSP} không tồn tại"
+                }), 400
+            
+            tenSP = result[0]
+            kho = result[1]
+            
+            if kho < soLuongDat:
+                conn.close()
+                return jsonify({
+                    "status": "error",
+                    "message": f"Sản phẩm '{tenSP}' không đủ trong kho. Hiện có: {kho}, yêu cầu: {soLuongDat}"
+                }), 400
+
         ThoiGianTao = datetime.datetime.now()
         TongTien = sum(item['SoLuong'] * item['GiaBan'] for item in ChiTiet)
 
@@ -142,14 +165,20 @@ def add_DonHang():
         new_order_id = int(result[0])
 
 
+
         insert_ct = "INSERT INTO ChiTietDonHang (MaDH, MaSP, SoLuong, GiaBan) VALUES (?, ?, ?, ?)"
+        update_kho = "UPDATE Laptop SET Kho = Kho - ? WHERE MaSP = ?"
+
         for item in ChiTiet:
+
             cursor.execute(insert_ct, (new_order_id, item['MaSP'], item['SoLuong'], item['GiaBan']))
+
+            cursor.execute(update_kho, (item['SoLuong'], item['MaSP']))
 
         conn.commit()
         conn.close()
 
-        print(f"✅ Tạo đơn hàng thành công! MaDH: {new_order_id}")
+        print(f" Tạo đơn hàng thành công! MaDH: {new_order_id}")
         return jsonify({"status": "success", "MaDH": new_order_id, "TongTien": TongTien}), 201
 
     except Exception as e:
@@ -215,7 +244,7 @@ def add_KhachHang():
         new_customer_id = int(result[0])
         conn.close()
 
-        print(f"✅ Thêm khách hàng thành công! MaKH: {new_customer_id}")
+        print(f" Thêm khách hàng thành công! MaKH: {new_customer_id}")
         return jsonify({
             "status": "success",
             "MaKH": new_customer_id,
@@ -251,8 +280,6 @@ def search_employees():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Tìm kiếm theo SĐT hoặc Tên (hỗ trợ tìm gần đúng)
-        # Sử dụng LIKE với % để tìm kiếm chứa chuỗi con
         search_pattern = f'%{search_term}%'
 
         query = """
@@ -299,9 +326,216 @@ def search_employees():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+@app.route('/add_Laptop', methods=['GET'])
+def add_laptop_form():
+    return render_template('themLapTop.html')
+
+
+@app.route('/edit_Laptop/<int:maSP>', methods=['GET'])
+def edit_laptop_form(maSP):
+    return render_template('suaLapTop.html')
+
+
+@app.route('/api/laptop/<int:maSP>', methods=['GET'])
+def get_laptop(maSP):
+    """Lấy thông tin chi tiết của một laptop theo MaSP"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM Laptop WHERE MaSP = ?", (maSP,))
+        columns = [column[0] for column in cursor.description]
+        row = cursor.fetchone()
+        conn.close()
+
+        if row:
+            laptop = dict(zip(columns, row))
+            return jsonify({
+                "status": "success",
+                "data": laptop
+            }), 200
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Không tìm thấy laptop"
+            }), 404
+
+    except Exception as e:
+        print("Lỗi:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/add_laptop', methods=['POST'])
+def add_laptop():
+    """Thêm laptop mới vào database"""
+    data = request.get_json()
+
+    TenSP = data.get('TenSP')
+    Hang = data.get('Hang')
+    GiaBan = data.get('GiaBan')
+    CauHinh = data.get('CauHinh')
+    Kho = data.get('Kho', 0)
+    MaNCC = data.get('MaNCC')
+    NgayNhap = data.get('NgayNhap')
+
+    if not TenSP or not Hang or GiaBan is None:
+        return jsonify({
+            "status": "error",
+            "message": "Thiếu thông tin bắt buộc (Tên SP, Hãng, Giá Bán)"
+        }), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        insert_query = """
+            INSERT INTO Laptop (TenSP, Hang, GiaBan, CauHinh, Kho, MaNCC, NgayNhap)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
+        """
+
+        cursor.execute(insert_query, (TenSP, Hang, GiaBan, CauHinh, Kho, MaNCC,NgayNhap))
+        conn.commit()
+
+
+        cursor.execute("SELECT SCOPE_IDENTITY() AS MaSP")
+        result = cursor.fetchone()
+
+
+        conn.close()
+
+        print(f"✓ Thêm laptop thành công!")
+        return jsonify({
+            "status": "success",
+            "TenSP": TenSP,
+            "NgayNhap": NgayNhap
+        }), 201
+
+    except Exception as e:
+        if 'conn' in locals():
+            try:
+                conn.rollback()
+                conn.close()
+            except:
+                pass
+        print("Lỗi:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/update_laptop/<int:maSP>', methods=['PUT'])
+def update_laptop(maSP):
+    """Cập nhật thông tin laptop"""
+    data = request.get_json()
+
+    TenSP = data.get('TenSP')
+    Hang = data.get('Hang')
+    GiaBan = data.get('GiaBan')
+    CauHinh = data.get('CauHinh')
+    Kho = data.get('Kho')
+    MaNCC = data.get('MaNCC')
+    NgayNhap = data.get('NgayNhap')
+
+    if not TenSP or not Hang or GiaBan is None:
+        return jsonify({
+            "status": "error",
+            "message": "Thiếu thông tin bắt buộc (Tên SP, Hãng, Giá Bán)"
+        }), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+
+        cursor.execute("SELECT MaSP FROM Laptop WHERE MaSP = ?", (maSP,))
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({
+                "status": "error",
+                "message": "Không tìm thấy laptop"
+            }), 404
+
+        update_query = """
+            UPDATE Laptop
+            SET TenSP = ?, Hang = ?, GiaBan = ?, CauHinh = ?, Kho = ?, MaNCC = ?, NgayNhap = ?
+            WHERE MaSP = ?
+        """
+
+        cursor.execute(update_query, (TenSP, Hang, GiaBan, CauHinh, Kho, MaNCC, NgayNhap, maSP))
+        conn.commit()
+        conn.close()
+
+        print(f"✓ Cập nhật laptop thành công!")
+        return jsonify({
+            "status": "success",
+            "message": "Cập nhật thành công"
+        }), 200
+
+    except Exception as e:
+        if 'conn' in locals():
+            try:
+                conn.rollback()
+                conn.close()
+            except:
+                pass
+        print("Lỗi:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/delete_laptop/<int:maSP>', methods=['DELETE'])
+def delete_laptop(maSP):
+    """Xóa laptop khỏi database"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Kiểm tra laptop có tồn tại không
+        cursor.execute("SELECT TenSP FROM Laptop WHERE MaSP = ?", (maSP,))
+        result = cursor.fetchone()
+
+        if not result:
+            conn.close()
+            return jsonify({
+                "status": "error",
+                "message": "Không tìm thấy laptop"
+            }), 404
+
+        ten_sp = result[0]
+
+        # Xóa laptop
+        cursor.execute("DELETE FROM Laptop WHERE MaSP = ?", (maSP,))
+        conn.commit()
+        conn.close()
+
+        print(f"✓ Xóa laptop thành công! MaSP: {maSP}, Tên: {ten_sp}")
+        return jsonify({
+            "status": "success",
+            "message": f"Đã xóa laptop {ten_sp}"
+        }), 200
+
+    except pyodbc.IntegrityError as e:
+        if 'conn' in locals():
+            try:
+                conn.rollback()
+                conn.close()
+            except:
+                pass
+        return jsonify({
+            "status": "error",
+            "message": "Không thể xóa laptop vì đã có đơn hàng liên quan"
+        }), 400
+    except Exception as e:
+        if 'conn' in locals():
+            try:
+                conn.rollback()
+                conn.close()
+            except:
+                pass
+        print("Lỗi:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_DEBUG', 'True') == 'True'
     host = os.getenv('FLASK_HOST', '127.0.0.1')
     port = int(os.getenv('FLASK_PORT', '5000'))
-    
+
     app.run(debug=debug_mode, host=host, port=port)

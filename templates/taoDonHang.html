@@ -153,7 +153,7 @@
         if (response.ok) {
           giaBanInput.value = result.GiaBan;
           infoSpan.className = 'product-info success';
-          infoSpan.textContent = `✓ ${result.TenSP} - Tồn kho: ${result.TonKho}`;
+          infoSpan.textContent = `✓ ${result.TenSP} - Kho: ${result.Kho}`;
         } else {
           giaBanInput.value = '';
           infoSpan.className = 'product-info error';

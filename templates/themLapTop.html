@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Thêm Laptop Mới</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #000;
+      color: #fff;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      width: 100%;
+      background: #111;
+      padding: 40px;
+      border: 1px solid #333;
+    }
+
+    .header {
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #333;
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+
+    .back-link {
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      border: 1px solid #fff;
+      padding: 6px 12px;
+      display: inline-block;
+      transition: all 0.3s;
+    }
+
+    .back-link:hover {
+      background: #fff;
+      color: #000;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 12px;
+      background: #000;
+      border: 1px solid #fff;
+      color: #fff;
+      font-size: 16px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: #ddd;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .btn-submit {
+      background: #fff;
+      color: #000;
+      padding: 14px 32px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      width: 100%;
+      margin-top: 10px;
+      transition: all 0.3s;
+    }
+
+    .btn-submit:hover {
+      background: #ddd;
+    }
+
+    .btn-submit:disabled {
+      background: #555;
+      color: #888;
+      cursor: not-allowed;
+    }
+
+    .message {
+      padding: 15px;
+      margin-bottom: 20px;
+      border-left: 4px solid #fff;
+    }
+
+    .message.error {
+      background: #fff;
+      color: #000;
+    }
+
+    .message.success {
+      background: #fff;
+      color: #000;
+    }
+
+    .required {
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Thêm Laptop Mới</h1>
+      <a href="/LapTop" class="back-link">← Quay lại danh sách</a>
+    </div>
+
+    <div id="message"></div>
+
+    <form id="laptopForm">
+      <div class="form-group">
+        <label for="TenSP">Tên Sản Phẩm <span class="required">*</span></label>
+        <input type="text" id="TenSP" name="TenSP" required>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="Hang">Hãng <span class="required">*</span></label>
+          <input type="text" id="Hang" name="Hang" required placeholder="VD: Dell, HP, Asus...">
+        </div>
+
+        <div class="form-group">
+          <label for="GiaBan">Giá Bán (VNĐ) <span class="required">*</span></label>
+          <input type="number" id="GiaBan" name="GiaBan" required min="0" step="1000">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="CauHinh">Cấu Hình</label>
+        <textarea id="CauHinh" name="CauHinh" placeholder="VD: Intel Core i5, RAM 8GB, SSD 256GB..."></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="Kho">Kho <span class="required">*</span></label>
+          <input type="number" id="Kho" name="Kho" required min="0" value="0">
+        </div>
+
+        <div class="form-group">
+          <label for="MaNCC">Mã Nhà Cung Cấp</label>
+          <input type="number" id="MaNCC" name="MaNCC" min="1">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="NgayNhap">Ngày Nhập</label>
+        <input type="date" id="NgayNhap" name="NgayNhap">
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn">Thêm Laptop</button>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('laptopForm');
+    const messageDiv = document.getElementById('message');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = {
+        TenSP: document.getElementById('TenSP').value,
+        Hang: document.getElementById('Hang').value,
+        GiaBan: parseFloat(document.getElementById('GiaBan').value),
+        CauHinh: document.getElementById('CauHinh').value || null,
+        Kho: parseInt(document.getElementById('Kho').value),
+        MaNCC: document.getElementById('MaNCC').value ? parseInt(document.getElementById('MaNCC').value) : null,
+        NgayNhap: document.getElementById('NgayNhap').value || null
+      };
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Đang xử lý...';
+
+      try {
+        const response = await fetch('/api/add_laptop', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          messageDiv.className = 'message success';
+          messageDiv.textContent = `Thêm laptop thành công!`;
+          messageDiv.style.display = 'block';
+
+          setTimeout(() => {
+            window.location.href = '/LapTop?success=add';
+          }, 1500);
+        } else {
+          messageDiv.className = 'message error';
+          messageDiv.textContent = 'Lỗi: ' + data.message;
+          messageDiv.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Thêm Laptop';
+        }
+      } catch (error) {
+        messageDiv.className = 'message error';
+        messageDiv.textContent = 'Có lỗi xảy ra: ' + error.message;
+        messageDiv.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Thêm Laptop';
+      }
+    });
+  </script>
+</body>
+
+</html>

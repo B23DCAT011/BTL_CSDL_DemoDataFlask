@@ -2,41 +2,261 @@
 <html>
 
 <head>
-  <title>Danh sách Laptop</title>
+  <title>Quản Lý Laptop</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #000;
+      color: #fff;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #333;
+    }
+
+    h1 {
+      font-size: 32px;
+      color: #fff;
+    }
+
+    .btn-add {
+      background: #fff;
+      color: #000;
+      padding: 12px 24px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      text-decoration: none;
+      display: inline-block;
+      transition: all 0.3s;
+    }
+
+    .btn-add:hover {
+      background: #ddd;
+      transform: translateY(-2px);
+    }
+
+    .laptop-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #111;
+      border: 1px solid #333;
+    }
+
+    .laptop-table thead {
+      background: #222;
+    }
+
+    .laptop-table th {
+      padding: 15px;
+      text-align: left;
+      font-weight: bold;
+      color: #fff;
+      border-bottom: 2px solid #444;
+    }
+
+    .laptop-table td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #222;
+      color: #ddd;
+    }
+
+    .laptop-table tbody tr {
+      transition: background 0.2s;
+    }
+
+    .laptop-table tbody tr:hover {
+      background: #1a1a1a;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-edit,
+    .btn-delete {
+      padding: 6px 12px;
+      border: 1px solid #fff;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+      text-decoration: none;
+    }
+
+    .btn-edit {
+      background: #fff;
+      color: #000;
+    }
+
+    .btn-edit:hover {
+      background: #ddd;
+    }
+
+    .btn-delete {
+      background: #000;
+      color: #fff;
+    }
+
+    .btn-delete:hover {
+      background: #fff;
+      color: #000;
+    }
+
+    .empty-message {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+      font-size: 18px;
+    }
+
+    .error-message {
+      background: #fff;
+      color: #000;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-left: 4px solid #000;
+    }
+
+    .success-message {
+      background: #fff;
+      color: #000;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-left: 4px solid #000;
+      display: none;
+    }
+
+    .price {
+      font-weight: bold;
+    }
+
+    .stock-info {
+      font-size: 12px;
+      color: #888;
+    }
+  </style>
 </head>
 
 <body>
-  <h1>Danh sách Laptop</h1>
-  {% if laptops %}
-  <table border="1">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Tên Laptop</th>
-        <th>Hãng</th>
-        <th>Cấu Hình</th>
-        <th>Giá Bán</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for laptop in laptops %}
-      <tr>
-        <td>{{ laptop.MaSP }}</td>
-        <td>{{ laptop.TenSP }}</td>
-        <td>{{ laptop.Hang }}</td>
-        <td>{{ laptop.CauHinh }}</td>
-        <td>{{ "{:,.0f}".format(laptop.GiaBan) }} VNĐ</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p>Không có laptop nào trong danh sách.</p>
-  {% endif %}
+  <div class="container">
+    <div class="header">
+      <h1>Quản Lý Laptop</h1>
+      <a href="/add_Laptop" class="btn-add">+ Thêm Laptop Mới</a>
+    </div>
 
-  {% if message %}
-  <p style="color: red;">{{ message }}</p>
-  {% endif %}
+    <div id="successMessage" class="success-message"></div>
+
+    {% if message %}
+    <div class="error-message">{{ message }}</div>
+    {% endif %}
+
+    {% if laptops %}
+    <table class="laptop-table">
+      <thead>
+        <tr>
+          <th>Mã SP</th>
+          <th>Tên Laptop</th>
+          <th>Hãng</th>
+          <th>Cấu Hình</th>
+          <th>Giá Bán</th>
+          <th>Kho</th>
+          <th>Nhà Cung Cấp</th>
+          <th>Thao Tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for laptop in laptops %}
+        <tr>
+          <td>{{ laptop.MaSP }}</td>
+          <td>{{ laptop.TenSP }}</td>
+          <td>{{ laptop.Hang }}</td>
+          <td>{{ laptop.CauHinh }}</td>
+          <td class="price">{{ "{:,.0f}".format(laptop.GiaBan) }} ₫</td>
+          <td>{{ laptop.Kho }} <span class="stock-info">cái</span></td>
+          <td>{{ laptop.MaNCC if laptop.MaNCC else 'N/A' }}</td>
+          <td>
+            <div class="action-buttons">
+              <a href="/edit_Laptop/{{ laptop.MaSP }}" class="btn-edit">Sửa</a>
+              <button class="btn-delete" onclick="deleteLaptop({{ laptop.MaSP }}, '{{ laptop.TenSP }}')">Xóa</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-message">Không có laptop nào trong danh sách.</div>
+    {% endif %}
+  </div>
+
+  <script>
+    function deleteLaptop(maSP, tenSP) {
+      if (!confirm(`Bạn có chắc chắn muốn xóa laptop "${tenSP}" (Mã: ${maSP})?`)) {
+        return;
+      }
+
+      fetch(`/api/delete_laptop/${maSP}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            const successMsg = document.getElementById('successMessage');
+            successMsg.textContent = `Đã xóa laptop "${tenSP}" thành công!`;
+            successMsg.style.display = 'block';
+            setTimeout(() => {
+              location.reload();
+            }, 1500);
+          } else {
+            alert('Lỗi: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Có lỗi xảy ra khi xóa laptop!');
+        });
+    }
+
+    // Check for success message in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'add') {
+      const successMsg = document.getElementById('successMessage');
+      successMsg.textContent = 'Thêm laptop mới thành công!';
+      successMsg.style.display = 'block';
+      setTimeout(() => {
+        successMsg.style.display = 'none';
+      }, 3000);
+    } else if (urlParams.get('success') === 'update') {
+      const successMsg = document.getElementById('successMessage');
+      successMsg.textContent = 'Cập nhật laptop thành công!';
+      successMsg.style.display = 'block';
+      setTimeout(() => {
+        successMsg.style.display = 'none';
+      }, 3000);
+    }
+  </script>
 </body>
 
 </html>

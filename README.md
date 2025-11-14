@@ -12,7 +12,7 @@ pip install -r requirements.txt
 
 ### 2. Cấu hình Database
 
-Copy file `.env.example` thành `.env` và điền thông tin database của bạn:
+Copy file `.env.example` thành `.env` và điền thông tin database:
 
 ```bash
 copy .env.example .env
@@ -38,22 +38,22 @@ python app.py
 
 ## Tính năng
 
-- ✅ Quản lý đơn hàng
-- ✅ Quản lý khách hàng
-- ✅ Tìm kiếm nhân viên
-- ✅ Quản lý sản phẩm laptop
+-  Quản lý đơn hàng
+-  Quản lý khách hàng
+-  Tìm kiếm nhân viên
+-  Quản lý sản phẩm laptop
 
 ## Cấu trúc thư mục
 
 ```
 LapTopDemo/
-├── app.py                  # File chính của ứng dụng
-├── .env                    # File cấu hình (không commit)
-├── .env.example            # File cấu hình mẫu
-├── .gitignore             # Git ignore file
-├── requirements.txt        # Python dependencies
-├── README.md              # File này
-└── templates/             # HTML templates
+├── app.py                 
+├── .env                   
+├── .env.example            
+├── .gitignore           
+├── requirements.txt        
+├── README.md             
+└── templates/             
     ├── index.html
     ├── LapTop.html
     ├── taoDonHang.html
@@ -61,8 +61,3 @@ LapTopDemo/
     └── timKiemNhanVien.html
 ```
 
-## Lưu ý bảo mật
-
-- ⚠️ **KHÔNG** commit file `.env` lên Git
-- ⚠️ Luôn sử dụng file `.env.example` làm template
-- ⚠️ Đổi mật khẩu database mặc định trong production

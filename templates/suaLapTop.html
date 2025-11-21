@@ -216,6 +216,14 @@
         <input type="date" id="NgayNhap" name="NgayNhap">
       </div>
 
+      <div class="form-group">
+        <label for="TrangThai">Trạng Thái</label>
+        <select id="TrangThai" name="TrangThai">
+          <option value="Active" selected>Active</option>
+          <option value="Ngừng kinh doanh">Inactive</option>
+        </select>
+      </div>
+
       <button type="submit" class="btn-submit" id="submitBtn">Cập Nhật</button>
     </form>
   </div>
@@ -242,7 +250,7 @@
           document.getElementById('Kho').value = laptop.Kho || 0;
           document.getElementById('MaNCC').value = laptop.MaNCC || '';
           document.getElementById('NgayNhap').value = laptop.NgayNhap ? laptop.NgayNhap.split('T')[0] : '';
-
+          document.getElementById('TrangThai').value = laptop.TrangThai || 'Active';
           loadingDiv.style.display = 'none';
           form.style.display = 'block';
         } else {
@@ -269,7 +277,8 @@
         CauHinh: document.getElementById('CauHinh').value || null,
         Kho: parseInt(document.getElementById('Kho').value),
         MaNCC: document.getElementById('MaNCC').value ? parseInt(document.getElementById('MaNCC').value) : null,
-        NgayNhap: document.getElementById('NgayNhap').value || null
+        NgayNhap: document.getElementById('NgayNhap').value || null,
+        TrangThai: document.getElementById('TrangThai').value
       };
 
       submitBtn.disabled = true;

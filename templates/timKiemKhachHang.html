@@ -2,7 +2,7 @@
 <html>
 
 <head>
-  <title>Tìm Kiếm Nhân Viên</title>
+  <title>Tìm Kiếm Khách Hàng</title>
   <meta charset="UTF-8">
   <style>
     * {
@@ -109,41 +109,41 @@
       font-weight: bold;
     }
 
-    .employee-grid {
+    .customer-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 15px;
     }
 
-    .employee-card {
+    .customer-card {
       background: #fff;
       border: 2px solid #000;
       padding: 15px;
     }
 
-    .employee-card:hover {
+    .customer-card:hover {
       background-color: #f5f5f5;
     }
 
-    .employee-header {
+    .customer-header {
       margin-bottom: 15px;
       padding-bottom: 15px;
       border-bottom: 1px solid #000;
     }
 
-    .employee-name {
+    .customer-name {
       font-size: 16px;
       font-weight: bold;
       color: #000;
       margin-bottom: 5px;
     }
 
-    .employee-id {
+    .customer-id {
       font-size: 12px;
       color: #666;
     }
 
-    .employee-details {
+    .customer-details {
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -215,15 +215,15 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>Tìm Kiếm Nhân Viên</h1>
+      <h1>Tìm Kiếm Khách Hàng</h1>
       <p>Tìm kiếm theo tên hoặc số điện thoại</p>
     </div>
 
     <div class="search-section">
       <div class="search-box">
-        <input type="text" id="searchInput" class="search-input" placeholder="Nhập tên hoặc số điện thoại nhân viên..."
+        <input type="text" id="searchInput" class="search-input" placeholder="Nhập tên hoặc số điện thoại khách hàng..."
           autofocus>
-        <button class="search-btn" onclick="searchEmployees()">Tìm Kiếm</button>
+        <button class="search-btn" onclick="searchCustomers()">Tìm Kiếm</button>
       </div>
       <div class="search-info">
         Ví dụ: "Nguyễn", "093", "dao"
@@ -240,7 +240,7 @@
     // Tìm kiếm khi nhấn Enter
     document.getElementById('searchInput').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
-        searchEmployees();
+        searchCustomers();
       }
     });
 
@@ -258,7 +258,7 @@
       return str;
     }
 
-    async function searchEmployees() {
+    async function searchCustomers() {
       const searchTerm = document.getElementById('searchInput').value.trim();
       const resultsContainer = document.getElementById('resultsContainer');
       const resultsCount = document.getElementById('resultsCount');
@@ -266,7 +266,7 @@
       if (!searchTerm) {
         resultsContainer.innerHTML = `
           <div class="no-results">
-            <div class="no-results-text">Nhập từ khóa để tìm kiếm nhân viên</div>
+            <div class="no-results-text">Nhập từ khóa để tìm kiếm khách hàng</div>
           </div>
         `;
         resultsCount.style.display = 'none';
@@ -278,29 +278,29 @@
       resultsCount.style.display = 'none';
 
       try {
-        const response = await fetch(`/api/search_employees?q=${encodeURIComponent(searchTerm)}`);
+        const response = await fetch(`/api/search_KhachHang?q=${encodeURIComponent(searchTerm)}`);
         const result = await response.json();
 
         if (response.ok && result.status === 'success') {
-          const employees = result.data;
+          const customers = result.data;
 
-          if (employees.length === 0) {
+          if (customers.length === 0) {
             resultsContainer.innerHTML = `
               <div class="no-results">
-                <div class="no-results-text">Không tìm thấy nhân viên phù hợp</div>
+                <div class="no-results-text">Không tìm thấy khách hàng phù hợp</div>
                 <p style="color: #666; margin-top: 10px;">Thử tìm với từ khóa khác</p>
               </div>
             `;
             resultsCount.style.display = 'none';
           } else {
             // Hiển thị số lượng kết quả
-            resultsCount.textContent = `Tìm thấy ${employees.length} nhân viên`;
+            resultsCount.textContent = `Tìm thấy ${customers.length} khách hàng`;
             resultsCount.style.display = 'block';
 
-            // Hiển thị danh sách nhân viên
+            // Hiển thị danh sách khách hàng
             resultsContainer.innerHTML = `
-              <div class="employee-grid">
-                ${employees.map(emp => createEmployeeCard(emp)).join('')}
+              <div class="customer-grid">
+                ${customers.map(cust => createCustomerCard(cust)).join('')}
               </div>
             `;
           }
@@ -322,36 +322,38 @@
       }
     }
 
-    function createEmployeeCard(emp) {
-      const statusClass = emp.TrangThai === 'Active' ? 'status-active' : 'status-inactive';
-      const statusText = emp.TrangThai === 'Active' ? 'Đang làm việc' : 'Nghỉ việc';
+    function createCustomerCard(cust) {
+      const statusClass = cust.TrangThai === 'Active' ? 'status-active' : 'status-inactive';
+      const statusText = cust.TrangThai === 'Active' ? 'Hoạt động' : 'Không hoạt động';
+
+      const formatDate = (dateStr) => {
+        if (!dateStr) return 'Chưa có';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('vi-VN');
+      };
 
       return `
-        <div class="employee-card">
-          <div class="employee-header">
-            <div class="employee-name">${emp.HoTen || 'N/A'}</div>
-            <div class="employee-id">Mã NV: ${emp.MaNV}</div>
+        <div class="customer-card">
+          <div class="customer-header">
+            <div class="customer-name">${cust.HoTen || 'N/A'}</div>
+            <div class="customer-id">Mã KH: ${cust.MaKH}</div>
           </div>
-          <div class="employee-details">
+          <div class="customer-details">
             <div class="detail-row">
               <span class="detail-label">SĐT:</span>
-              <span class="detail-value">${emp.SDT || 'Chưa có'}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Email:</span>
-              <span class="detail-value">${emp.Email || 'Chưa có'}</span>
+              <span class="detail-value">${cust.SDT || 'Chưa có'}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Giới tính:</span>
-              <span class="detail-value">${emp.GioiTinh || 'Chưa rõ'}</span>
+              <span class="detail-value">${cust.GioiTinh || 'Chưa rõ'}</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Chức vụ:</span>
-              <span class="detail-value">${emp.TenChucVu || 'Chưa có'}</span>
+              <span class="detail-label">Ngày sinh:</span>
+              <span class="detail-value">${formatDate(cust.NgaySinh)}</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Lương cơ bản:</span>
-              <span class="detail-value">${emp.LuongCoBan ? emp.LuongCoBan.toLocaleString('vi-VN') + ' VNĐ' : 'Chưa có'}</span>
+              <span class="detail-label">Địa chỉ:</span>
+              <span class="detail-value">${cust.DiaChi || 'Chưa có'}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Trạng thái:</span>
@@ -365,7 +367,7 @@
     // Hiển thị thông báo ban đầu
     document.getElementById('resultsContainer').innerHTML = `
       <div class="no-results">
-        <div class="no-results-text">Nhập từ khóa để tìm kiếm nhân viên</div>
+        <div class="no-results-text">Nhập từ khóa để tìm kiếm khách hàng</div>
       </div>
     `;
   </script>

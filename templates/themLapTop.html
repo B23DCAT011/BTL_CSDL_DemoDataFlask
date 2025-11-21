@@ -191,6 +191,14 @@
         <input type="date" id="NgayNhap" name="NgayNhap">
       </div>
 
+      <div class="form-group">
+        <label for="TrangThai">Trạng Thái</label>
+        <select id="TrangThai" name="TrangThai">
+          <option value="Active" selected>Active</option>
+          <option value="Ngừng kinh doanh">Inactive</option>
+        </select>
+      </div>
+
       <button type="submit" class="btn-submit" id="submitBtn">Thêm Laptop</button>
     </form>
   </div>
@@ -210,7 +218,8 @@
         CauHinh: document.getElementById('CauHinh').value || null,
         Kho: parseInt(document.getElementById('Kho').value),
         MaNCC: document.getElementById('MaNCC').value ? parseInt(document.getElementById('MaNCC').value) : null,
-        NgayNhap: document.getElementById('NgayNhap').value || null
+        NgayNhap: document.getElementById('NgayNhap').value || null,
+        TrangThai: document.getElementById('TrangThai').value
       };
 
       submitBtn.disabled = true;

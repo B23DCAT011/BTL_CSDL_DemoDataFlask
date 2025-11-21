@@ -265,9 +265,144 @@ def add_KhachHang():
         print("Lỗi:", e)
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route('/search_NhanVien', methods=['GET'])
-def search_employee_page():
-    return render_template('timKiemNhanVien.html')
+@app.route('/search_KhachHang', methods=['GET'])
+def search_customer_page():
+    return render_template('timKiemKhachHang.html')
+
+
+@app.route('/api/search_KhachHang', methods=['GET'])
+def search_KhachHang():
+    search_term = request.args.get('q', '').strip()
+
+    if not search_term:
+        return jsonify({"status": "error", "message": "Thiếu từ khóa tìm kiếm"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        search_pattern = f'%{search_term}%'
+
+        query = """
+            SELECT
+                kh.MaKH,
+                kh.HoTen,
+                kh.GioiTinh,
+                kh.NgaySinh,
+                kh.SDT,
+                kh.DiaChi,
+                kh.TrangThai
+            FROM KhachHang kh
+            WHERE kh.SDT LIKE ?
+               OR kh.HoTen LIKE ?
+               OR kh.HoTen COLLATE Latin1_General_CI_AI LIKE ?
+            ORDER BY kh.TrangThai DESC, kh.HoTen ASC
+        """
+
+        cursor.execute(query, (search_pattern, search_pattern, search_pattern))
+        rows = cursor.fetchall()
+        conn.close()
+
+        customers = []
+        for row in rows:
+            customers.append({
+                'MaKH': row[0],
+                'HoTen': row[1],
+                'GioiTinh': row[2],
+                'NgaySinh': row[3].isoformat() if row[3] else None,
+                'SDT': row[4],
+                'DiaChi': row[5],
+                'TrangThai': row[6]
+            })
+
+        return jsonify({
+            "status": "success",
+            "data": customers,
+            "count": len(customers)
+        }), 200
+
+    except Exception as e:
+        print("Lỗi tìm kiếm:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/thong_ke_doanh_thu', methods=['GET'])
+def thong_ke_doanh_thu_page():
+    return render_template('thongKeDoanhThu.html')
+
+
+@app.route('/api/thong_ke_doanh_thu', methods=['GET'])
+def thong_ke_doanh_thu():
+    from_date = request.args.get('from_date')
+    to_date = request.args.get('to_date')
+
+    if not from_date or not to_date:
+        return jsonify({
+            "status": "error",
+            "message": "Thiếu thông tin ngày bắt đầu hoặc ngày kết thúc"
+        }), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        query = """
+            SELECT
+                dh.MaDH,
+                dh.ThoiGianTao,
+                kh.HoTen as TenKhachHang,
+                nv.HoTen as TenNhanVien,
+                dh.TrangThaiXuLy,
+                dh.TongTien
+            FROM DonHang dh
+            INNER JOIN KhachHang kh ON dh.MaKH = kh.MaKH
+            INNER JOIN NhanVien nv ON dh.MaNV = nv.MaNV
+            WHERE CAST(dh.ThoiGianTao AS DATE) >= ?
+              AND CAST(dh.ThoiGianTao AS DATE) <= ?
+            ORDER BY dh.ThoiGianTao DESC
+        """
+
+        cursor.execute(query, (from_date, to_date))
+        rows = cursor.fetchall()
+
+        orders = []
+        total_revenue = 0
+
+        for row in rows:
+            order = {
+                'MaDH': row[0],
+                'ThoiGianTao': row[1].isoformat() if row[1] else None,
+                'TenKhachHang': row[2],
+                'TenNhanVien': row[3],
+                'TrangThaiXuLy': row[4],
+                'TongTien': float(row[5]) if row[5] else 0
+            }
+            orders.append(order)
+            total_revenue += order['TongTien']
+
+        conn.close()
+
+        # Tính toán thống kê
+        total_orders = len(orders)
+        avg_revenue = total_revenue / total_orders if total_orders > 0 else 0
+
+        return jsonify({
+            "status": "success",
+            "summary": {
+                "total_orders": total_orders,
+                "total_revenue": total_revenue,
+                "avg_revenue": avg_revenue
+            },
+            "orders": orders
+        }), 200
+
+    except Exception as e:
+        print("Lỗi thống kê:", e)
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
 
 @app.route('/api/search_employees', methods=['GET'])
 def search_employees():
@@ -377,6 +512,7 @@ def add_laptop():
     Kho = data.get('Kho', 0)
     MaNCC = data.get('MaNCC')
     NgayNhap = data.get('NgayNhap')
+    TrangThai = data.get('TrangThai')
 
     if not TenSP or not Hang or GiaBan is None:
         return jsonify({
@@ -389,11 +525,11 @@ def add_laptop():
         cursor = conn.cursor()
 
         insert_query = """
-            INSERT INTO Laptop (TenSP, Hang, GiaBan, CauHinh, Kho, MaNCC, NgayNhap)
-            VALUES (?, ?, ?, ?, ?, ?, ?);
+            INSERT INTO Laptop (TenSP, Hang, GiaBan, CauHinh, Kho, MaNCC, NgayNhap,TrangThai)
+            VALUES (?, ?, ?, ?, ?, ?, ?,?);
         """
 
-        cursor.execute(insert_query, (TenSP, Hang, GiaBan, CauHinh, Kho, MaNCC,NgayNhap))
+        cursor.execute(insert_query, (TenSP, Hang, GiaBan, CauHinh, Kho, MaNCC,NgayNhap,TrangThai))
         conn.commit()
 
 
@@ -433,6 +569,7 @@ def update_laptop(maSP):
     Kho = data.get('Kho')
     MaNCC = data.get('MaNCC')
     NgayNhap = data.get('NgayNhap')
+    TrangThai = data.get('TrangThai')
 
     if not TenSP or not Hang or GiaBan is None:
         return jsonify({
@@ -455,11 +592,11 @@ def update_laptop(maSP):
 
         update_query = """
             UPDATE Laptop
-            SET TenSP = ?, Hang = ?, GiaBan = ?, CauHinh = ?, Kho = ?, MaNCC = ?, NgayNhap = ?
+            SET TenSP = ?, Hang = ?, GiaBan = ?, CauHinh = ?, Kho = ?, MaNCC = ?, NgayNhap = ?, TrangThai=?
             WHERE MaSP = ?
         """
 
-        cursor.execute(update_query, (TenSP, Hang, GiaBan, CauHinh, Kho, MaNCC, NgayNhap, maSP))
+        cursor.execute(update_query, (TenSP, Hang, GiaBan, CauHinh, Kho, MaNCC, NgayNhap, TrangThai, maSP))
         conn.commit()
         conn.close()
 

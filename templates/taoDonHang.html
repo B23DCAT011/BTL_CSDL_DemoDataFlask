@@ -4,141 +4,377 @@
 <head>
   <title>Tạo Đơn Hàng</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f7fa;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e1e4e8;
+    }
+
+    .header {
+      background: #24292e;
+      color: #fff;
+      padding: 20px 30px;
+      border-bottom: 3px solid #0366d6;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .header .links {
+      margin-top: 12px;
+    }
+
+    .header a {
+      color: #fff;
+      text-decoration: none;
+      padding: 6px 14px;
+      border: 1px solid #fff;
+      border-radius: 3px;
+      margin-right: 8px;
+      display: inline-block;
+      transition: all 0.2s;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .header a:hover {
+      background: #fff;
+      color: #24292e;
+    }
+
+    .form-content {
+      padding: 30px;
+    }
+
+    .form-section {
+      margin-bottom: 35px;
+    }
+
+    .form-section h3 {
+      color: #24292e;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e1e4e8;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 15px;
     }
 
     .form-group {
       margin-bottom: 15px;
     }
 
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
     label {
       display: block;
-      margin-bottom: 5px;
-      font-weight: bold;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #24292e;
+      font-size: 13px;
     }
 
     input,
     select,
     textarea {
-      width: 300px;
-      padding: 8px;
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5da;
+      border-radius: 3px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+      font-family: inherit;
+      background: #fff;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #0366d6;
+      box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .item-card {
+      background: #fafbfc;
+      border: 1px solid #e1e4e8;
+      border-radius: 3px;
+      padding: 20px;
+      margin-bottom: 15px;
+      position: relative;
+    }
+
+    .item-card:hover {
+      border-color: #0366d6;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .item-number {
+      position: absolute;
+      top: -10px;
+      left: 15px;
+      background: #24292e;
+      color: #fff;
+      width: 28px;
+      height: 28px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .remove-item {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: #d73a49;
+      color: #fff;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      transition: background-color 0.2s;
+    }
+
+    .remove-item:hover {
+      background: #cb2431;
+    }
+
+    .product-info {
+      display: block;
+      font-size: 12px;
+      margin-top: 6px;
+      padding: 6px 10px;
+      border-radius: 3px;
+      font-weight: 500;
+    }
+
+    .product-info.success {
+      background: #d4f4dd;
+      color: #0e5814;
+      border: 1px solid #a2dda8;
+    }
+
+    .product-info.error {
+      background: #ffdce0;
+      color: #86181d;
+      border: 1px solid #f9c4c8;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e1e4e8;
     }
 
     button {
-      padding: 10px 20px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
+      padding: 8px 16px;
+      border: 1px solid;
+      border-radius: 3px;
       cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
     }
 
-    button:hover {
-      background-color: #45a049;
+    .btn-add {
+      background: #28a745;
+      color: white;
+      border-color: #28a745;
     }
 
-    .item {
-      border: 1px solid #ddd;
-      padding: 10px;
-      margin: 10px 0;
+    .btn-add:hover {
+      background: #218838;
+      border-color: #1e7e34;
+    }
+
+    .btn-submit {
+      background: #0366d6;
+      color: white;
+      border-color: #0366d6;
+    }
+
+    .btn-submit:hover {
+      background: #0256c2;
+      border-color: #024ea4;
     }
 
     #result {
-      margin-top: 20px;
-      padding: 10px;
+      margin: 20px 30px;
+      padding: 12px 16px;
+      border-radius: 3px;
+      font-size: 14px;
+      border: 1px solid;
     }
 
     .success {
-      background-color: #d4edda;
-      color: #155724;
+      background-color: #d4f4dd;
+      color: #0e5814;
+      border-color: #a2dda8;
     }
 
     .error {
-      background-color: #f8d7da;
-      color: #721c24;
+      background-color: #ffdce0;
+      color: #86181d;
+      border-color: #f9c4c8;
+    }
+
+    @media (max-width: 768px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 
 <body>
-  <a href="/add_KhachHang">Tạo Khách Hàng</a>
-  <h1>Tạo Đơn Hàng Mới</h1>
-
-
-  <form id="orderForm">
-    <div class="form-group">
-      <label>Mã Khách Hàng:</label>
-      <input type="text" id="MaKH" required>
-    </div>
-
-    <div class="form-group">
-      <label>Mã Nhân Viên:</label>
-      <input type="text" id="MaNV" required>
-    </div>
-
-    <div class="form-group">
-      <label>Ngày Giao:</label>
-      <input type="date" id="NgayGiao" required>
-    </div>
-
-    <div class="form-group">
-      <label>Trạng Thái:</label>
-      <select id="TrangThaiXuLy">
-        <option value="Chưa xử lý">Chưa xử lý</option>
-        <option value="Đang giao">Đang giao</option>
-        <option value="Hoàn tất">Hoàn tất</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label>Ghi Chú:</label>
-      <textarea id="GhiChu" rows="3"></textarea>
-    </div>
-
-    <h3>Chi Tiết Đơn Hàng</h3>
-    <div id="items">
-      <div class="item">
-        <label>Mã Sản Phẩm:</label>
-        <input type="text" class="MaSP" required onblur="fetchPrice(this)">
-        <span class="product-info"></span>
-        <label>Số Lượng:</label>
-        <input type="number" class="SoLuong" min="1" value="1" required>
-        <label>Giá Bán:</label>
-        <input type="number" class="GiaBan" min="0" step="1000" required readonly style="background-color: #f0f0f0;">
+  <div class="container">
+    <div class="header">
+      <h1>Tạo Đơn Hàng Mới</h1>
+      <div class="links">
+        <a href="/">Trang chủ</a>
+        <a href="/add_KhachHang">Tạo Khách Hàng</a>
       </div>
     </div>
 
-    <button type="button" onclick="addItem()">Thêm Sản Phẩm</button>
-    <button type="submit">Tạo Đơn Hàng</button>
-  </form>
+    <div class="form-content">
+      <form id="orderForm">
+        <div class="form-section">
+          <h3>Thông Tin Đơn Hàng</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Mã Khách Hàng:</label>
+              <input type="text" id="MaKH" required placeholder="Nhập mã khách hàng">
+            </div>
 
-  <div id="result"></div>
+            <div class="form-group">
+              <label>Mã Nhân Viên:</label>
+              <input type="text" id="MaNV" required placeholder="Nhập mã nhân viên">
+            </div>
+          </div>
 
-  <style>
-    .product-info {
-      display: block;
-      font-size: 12px;
-      color: #666;
-      margin-top: 5px;
-      font-style: italic;
-    }
+          <div class="form-row">
+            <div class="form-group">
+              <label>Ngày Giao:</label>
+              <input type="date" id="NgayGiao" required>
+            </div>
 
-    .product-info.success {
-      color: #155724;
-    }
+            <div class="form-group">
+              <label>Trạng Thái:</label>
+              <select id="TrangThaiXuLy">
+                <option value="Chưa xử lý">Chưa xử lý</option>
+                <option value="Đang giao">Đang giao</option>
+                <option value="Hoàn tất">Hoàn tất</option>
+              </select>
+            </div>
+          </div>
 
-    .product-info.error {
-      color: #721c24;
-    }
-  </style>
+          <div class="form-group full-width">
+            <label>Ghi Chú:</label>
+            <textarea id="GhiChu" rows="3" placeholder="Nhập ghi chú cho đơn hàng (không bắt buộc)"></textarea>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3>Chi Tiết Sản Phẩm</h3>
+          <div id="items">
+            <div class="item-card">
+              <div class="item-number">1</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Mã Sản Phẩm:</label>
+                  <input type="text" class="MaSP" required onblur="fetchPrice(this)" placeholder="Nhập mã sản phẩm">
+                  <span class="product-info"></span>
+                </div>
+                <div class="form-group">
+                  <label>Số Lượng:</label>
+                  <input type="number" class="SoLuong" min="1" value="1" required placeholder="Nhập số lượng">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Giá Bán:</label>
+                <input type="number" class="GiaBan" min="0" step="1000" required readonly
+                  style="background-color: #f0f0f0; cursor: not-allowed;" placeholder="Giá tự động">
+              </div>
+            </div>
+          </div>
+
+          <button type="button" onclick="addItem()" class="btn-add">Thêm Sản Phẩm</button>
+        </div>
+
+        <div class="button-group">
+          <button type="submit" class="btn-submit">Tạo Đơn Hàng</button>
+        </div>
+      </form>
+
+      <div id="result"></div>
+    </div>
+  </div>
 
   <script>
+    let itemCount = 1;
+
+    // Set ngày tối thiểu là hôm nay
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('NgayGiao').setAttribute('min', today);
+
+    // Validate MaKH và MaNV chỉ nhập số
+    document.getElementById('MaKH').addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/[^0-9]/g, '');
+    });
+
+    document.getElementById('MaNV').addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/[^0-9]/g, '');
+    });
+
     async function fetchPrice(input) {
       const maSP = input.value.trim();
-      const itemDiv = input.closest('.item');
+      const itemDiv = input.closest('.item-card');
       const giaBanInput = itemDiv.querySelector('.GiaBan');
       const infoSpan = itemDiv.querySelector('.product-info');
+
+      // Chỉ cho phép nhập số
+      input.value = input.value.replace(/[^0-9]/g, '');
 
       if (!maSP) {
         giaBanInput.value = '';
@@ -167,39 +403,116 @@
     }
 
     function addItem() {
+      itemCount++;
       const itemHtml = `
-                <div class="item">
-                    <label>Mã Sản Phẩm:</label>
-                    <input type="text" class="MaSP" required onblur="fetchPrice(this)">
-                    <span class="product-info"></span>
-                    <label>Số Lượng:</label>
-                    <input type="number" class="SoLuong" min="1" value="1" required>
-                    <label>Giá Bán:</label>
-                    <input type="number" class="GiaBan" min="0" step="1000" required readonly style="background-color: #f0f0f0;">
-                    <button type="button" onclick="this.parentElement.remove()">Xóa</button>
-                </div>
-            `;
+        <div class="item-card">
+          <div class="item-number">${itemCount}</div>
+          <button type="button" class="remove-item" onclick="this.closest('.item-card').remove(); updateItemNumbers();">×</button>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Mã Sản Phẩm:</label>
+              <input type="text" class="MaSP" required onblur="fetchPrice(this)" placeholder="Nhập mã sản phẩm">
+              <span class="product-info"></span>
+            </div>
+            <div class="form-group">
+              <label>Số Lượng:</label>
+              <input type="number" class="SoLuong" min="1" value="1" required placeholder="Nhập số lượng">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Giá Bán:</label>
+            <input type="number" class="GiaBan" min="0" step="1000" required readonly 
+                   style="background-color: #f0f0f0; cursor: not-allowed;" placeholder="Giá tự động">
+          </div>
+        </div>
+      `;
       document.getElementById('items').insertAdjacentHTML('beforeend', itemHtml);
+    }
+
+    function updateItemNumbers() {
+      const items = document.querySelectorAll('.item-number');
+      items.forEach((item, index) => {
+        item.textContent = index + 1;
+      });
+      itemCount = items.length;
     }
 
     document.getElementById('orderForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      // Validation frontend trước khi submit
+      const maKH = document.getElementById('MaKH').value.trim();
+      const maNV = document.getElementById('MaNV').value.trim();
+      const ngayGiao = document.getElementById('NgayGiao').value;
+
+      if (!maKH || !maNV) {
+        alert('Vui lòng nhập đầy đủ mã khách hàng và mã nhân viên!');
+        return;
+      }
+
+      if (parseInt(maKH) <= 0 || parseInt(maNV) <= 0) {
+        alert('Mã khách hàng và mã nhân viên phải lớn hơn 0!');
+        return;
+      }
+
+      // Kiểm tra ngày giao không quá khứ
+      const ngayGiaoDate = new Date(ngayGiao);
+      const homNay = new Date();
+      homNay.setHours(0, 0, 0, 0);
+
+      if (ngayGiaoDate < homNay) {
+        alert('Ngày giao hàng không được là quá khứ!');
+        return;
+      }
+
+      // Validate chi tiết đơn hàng
       const ChiTiet = [];
-      document.querySelectorAll('.item').forEach(item => {
+      const itemCards = document.querySelectorAll('.item-card');
+
+      if (itemCards.length === 0) {
+        alert('Đơn hàng phải có ít nhất 1 sản phẩm!');
+        return;
+      }
+
+      let hasError = false;
+      itemCards.forEach((item, idx) => {
+        const maSP = item.querySelector('.MaSP').value.trim();
+        const soLuong = parseInt(item.querySelector('.SoLuong').value);
+        const giaBan = parseFloat(item.querySelector('.GiaBan').value);
+
+        if (!maSP || !soLuong || !giaBan) {
+          alert(`Sản phẩm thứ ${idx + 1}: Vui lòng nhập đầy đủ thông tin!`);
+          hasError = true;
+          return;
+        }
+
+        if (soLuong <= 0) {
+          alert(`Sản phẩm thứ ${idx + 1}: Số lượng phải lớn hơn 0!`);
+          hasError = true;
+          return;
+        }
+
+        if (giaBan <= 0) {
+          alert(`Sản phẩm thứ ${idx + 1}: Giá bán phải lớn hơn 0!`);
+          hasError = true;
+          return;
+        }
+
         ChiTiet.push({
-          MaSP: item.querySelector('.MaSP').value,
-          SoLuong: parseInt(item.querySelector('.SoLuong').value),
-          GiaBan: parseFloat(item.querySelector('.GiaBan').value)
+          MaSP: maSP,
+          SoLuong: soLuong,
+          GiaBan: giaBan
         });
       });
 
+      if (hasError) return;
+
       const orderData = {
-        MaKH: document.getElementById('MaKH').value,
-        MaNV: document.getElementById('MaNV').value,
-        NgayGiao: document.getElementById('NgayGiao').value,
+        MaKH: maKH,
+        MaNV: maNV,
+        NgayGiao: ngayGiao,
         TrangThaiXuLy: document.getElementById('TrangThaiXuLy').value,
-        GhiChu: document.getElementById('GhiChu').value,
+        GhiChu: document.getElementById('GhiChu').value.trim(),
         ChiTiet: ChiTiet
       };
 
@@ -213,19 +526,22 @@
         });
 
         const result = await response.json();
-        const resultDiv = document.getElementById('result');
 
         if (response.ok) {
-          resultDiv.className = 'success';
-          resultDiv.innerHTML = `✅ Tạo đơn hàng thành công! Mã ĐH: ${result.MaDH}, Tổng tiền: ${result.TongTien.toLocaleString()} VNĐ`;
-          document.getElementById('orderForm').reset();
+          // Chuyển hướng sang trang xem trước hóa đơn
+          window.location.href = `/xem_hoa_don/${result.MaDH}`;
         } else {
+          const resultDiv = document.getElementById('result');
           resultDiv.className = 'error';
           resultDiv.innerHTML = `❌ Lỗi: ${result.message}`;
+          setTimeout(() => {
+            resultDiv.style.display = 'none';
+          }, 5000);
         }
       } catch (error) {
-        document.getElementById('result').className = 'error';
-        document.getElementById('result').innerHTML = `❌ Lỗi kết nối: ${error.message}`;
+        const resultDiv = document.getElementById('result');
+        resultDiv.className = 'error';
+        resultDiv.innerHTML = `❌ Lỗi kết nối: ${error.message}`;
       }
     });
   </script>

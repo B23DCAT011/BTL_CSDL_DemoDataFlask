@@ -98,23 +98,81 @@ def add_DonHang():
     GhiChu = data.get('GhiChu', '')
     ChiTiet = data.get('ChiTiet', [])
 
-
-
+    # Validation cơ bản
     if not MaKH or not MaNV or not NgayGiao or not TrangThaiXuLy or not ChiTiet:
         return jsonify({"status": "error", "message": "Thiếu thông tin bắt buộc"}), 400
 
+    # Validate MaKH và MaNV phải là số
+    try:
+        MaKH = int(MaKH)
+        MaNV = int(MaNV)
+    except (ValueError, TypeError):
+        return jsonify({"status": "error", "message": "Mã khách hàng và mã nhân viên phải là số"}), 400
 
+    # Validate NgayGiao không được là quá khứ
+    try:
+        ngay_giao_date = datetime.datetime.strptime(NgayGiao, '%Y-%m-%d').date()
+        hom_nay = datetime.datetime.now().date()
+        if ngay_giao_date < hom_nay:
+            return jsonify({"status": "error", "message": "Ngày giao hàng không được là quá khứ"}), 400
+    except ValueError:
+        return jsonify({"status": "error", "message": "Định dạng ngày giao không hợp lệ (yêu cầu: YYYY-MM-DD)"}), 400
+
+    # Validate trạng thái
     valid_statuses = ['Chưa xử lý', 'Đang giao', 'Hoàn tất']
     if TrangThaiXuLy not in valid_statuses:
-        return jsonify({"status": "error", "message": f"Trạng thái không hợp lệ. Phải là: {valid_statuses}"}), 400
+        return jsonify({"status": "error", "message": f"Trạng thái không hợp lệ. Phải là: {', '.join(valid_statuses)}"}), 400
+
+    # Validate ChiTiet không rỗng
+    if len(ChiTiet) == 0:
+        return jsonify({"status": "error", "message": "Đơn hàng phải có ít nhất 1 sản phẩm"}), 400
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        for item in ChiTiet:
+        # Kiểm tra MaKH tồn tại
+        cursor.execute("SELECT MaKH, TrangThai FROM KhachHang WHERE MaKH = ?", (MaKH,))
+        kh_result = cursor.fetchone()
+        if not kh_result:
+            conn.close()
+            return jsonify({"status": "error", "message": f"Không tìm thấy khách hàng với mã {MaKH}"}), 400
+        if kh_result[1] != 'Active':
+            conn.close()
+            return jsonify({"status": "error", "message": "Khách hàng không ở trạng thái hoạt động"}), 400
+
+        # Kiểm tra MaNV tồn tại
+        cursor.execute("SELECT MaNV FROM NhanVien WHERE MaNV = ?", (MaNV,))
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({"status": "error", "message": f"Không tìm thấy nhân viên với mã {MaNV}"}), 400
+
+        # Validate từng sản phẩm trong chi tiết đơn hàng
+        for idx, item in enumerate(ChiTiet, 1):
             maSP = item.get('MaSP')
             soLuongDat = item.get('SoLuong')
+            giaBan = item.get('GiaBan')
+
+            # Validate dữ liệu chi tiết
+            if not maSP or not soLuongDat or giaBan is None:
+                conn.close()
+                return jsonify({"status": "error", "message": f"Sản phẩm thứ {idx} thiếu thông tin (MaSP, SoLuong, GiaBan)"}), 400
+
+            try:
+                maSP = int(maSP)
+                soLuongDat = int(soLuongDat)
+                giaBan = float(giaBan)
+            except (ValueError, TypeError):
+                conn.close()
+                return jsonify({"status": "error", "message": f"Sản phẩm thứ {idx} có dữ liệu không hợp lệ"}), 400
+
+            if soLuongDat <= 0:
+                conn.close()
+                return jsonify({"status": "error", "message": f"Sản phẩm thứ {idx}: Số lượng phải lớn hơn 0"}), 400
+
+            if giaBan <= 0:
+                conn.close()
+                return jsonify({"status": "error", "message": f"Sản phẩm thứ {idx}: Giá bán phải lớn hơn 0"}), 400
             
             cursor.execute("SELECT TenSP, Kho FROM Laptop WHERE MaSP = ?", (maSP,))
             result = cursor.fetchone()
@@ -200,22 +258,58 @@ def add_KhachHang_form():
 def add_KhachHang():
     data = request.get_json()
 
-    HoTen = data.get('HoTen')
+    HoTen = data.get('HoTen', '').strip()
     GioiTinh = data.get('GioiTinh')
     NgaySinh = data.get('NgaySinh')
-    SDT = data.get('SDT')
-    DiaChi = data.get('DiaChi')
-    TrangThai = data.get('TrangThai')
+    SDT = data.get('SDT', '').strip()
+    DiaChi = data.get('DiaChi', '').strip() if data.get('DiaChi') else None
+    TrangThai = data.get('TrangThai', 'Active')
 
-    if not HoTen or not SDT:
-        return jsonify({"status": "error", "message": "Họ tên và số điện thoại là bắt buộc"}), 400
+    # Validation họ tên
+    if not HoTen:
+        return jsonify({"status": "error", "message": "Họ tên là bắt buộc"}), 400
 
+    if len(HoTen) < 2:
+        return jsonify({"status": "error", "message": "Họ tên phải có ít nhất 2 ký tự"}), 400
 
+    if len(HoTen) > 100:
+        return jsonify({"status": "error", "message": "Họ tên không được quá 100 ký tự"}), 400
+
+    # Validate số điện thoại
+    if not SDT:
+        return jsonify({"status": "error", "message": "Số điện thoại là bắt buộc"}), 400
+
+    # Kiểm tra định dạng SDT (10-11 số)
+    if not SDT.isdigit():
+        return jsonify({"status": "error", "message": "Số điện thoại chỉ được chứa chữ số"}), 400
+
+    if len(SDT) < 10 or len(SDT) > 11:
+        return jsonify({"status": "error", "message": "Số điện thoại phải có 10-11 chữ số"}), 400
+
+    # Validate giới tính
     valid_genders = ['Nam', 'Nu', 'Khac', None]
     if GioiTinh not in valid_genders:
         return jsonify({"status": "error", "message": "Giới tính không hợp lệ"}), 400
 
+    # Validate ngày sinh (không được tương lai)
+    if NgaySinh:
+        try:
+            ngay_sinh_date = datetime.datetime.strptime(NgaySinh, '%Y-%m-%d').date()
+            hom_nay = datetime.datetime.now().date()
+            if ngay_sinh_date > hom_nay:
+                return jsonify({"status": "error", "message": "Ngày sinh không được là tương lai"}), 400
 
+            # Kiểm tra tuổi hợp lý (ít nhất 13 tuổi)
+            tuoi = (hom_nay - ngay_sinh_date).days / 365.25
+            if tuoi < 13:
+                return jsonify({"status": "error", "message": "Khách hàng phải ít nhất 13 tuổi"}), 400
+
+            if tuoi > 150:
+                return jsonify({"status": "error", "message": "Ngày sinh không hợp lệ"}), 400
+        except ValueError:
+            return jsonify({"status": "error", "message": "Định dạng ngày sinh không hợp lệ (yêu cầu: YYYY-MM-DD)"}), 400
+
+    # Validate trạng thái
     valid_statuses = ['Active', 'Inactive']
     if TrangThai not in valid_statuses:
         return jsonify({"status": "error", "message": "Trạng thái không hợp lệ"}), 400
@@ -346,7 +440,8 @@ def thong_ke_doanh_thu():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        query = """
+        # Query đơn hàng
+        query_orders = """
             SELECT
                 dh.MaDH,
                 dh.ThoiGianTao,
@@ -362,11 +457,12 @@ def thong_ke_doanh_thu():
             ORDER BY dh.ThoiGianTao DESC
         """
 
-        cursor.execute(query, (from_date, to_date))
+        cursor.execute(query_orders, (from_date, to_date))
         rows = cursor.fetchall()
 
         orders = []
         total_revenue = 0
+        completed_revenue = 0
 
         for row in rows:
             order = {
@@ -379,6 +475,62 @@ def thong_ke_doanh_thu():
             }
             orders.append(order)
             total_revenue += order['TongTien']
+            if order['TrangThaiXuLy'] == 'Hoàn tất':
+                completed_revenue += order['TongTien']
+
+        # Query doanh số theo nhân viên
+        query_employee_stats = """
+            SELECT
+                nv.HoTen as TenNhanVien,
+                COUNT(dh.MaDH) as SoDonHang,
+                SUM(dh.TongTien) as TongDoanhThu
+            FROM DonHang dh
+            INNER JOIN NhanVien nv ON dh.MaNV = nv.MaNV
+            WHERE CAST(dh.ThoiGianTao AS DATE) >= ?
+              AND CAST(dh.ThoiGianTao AS DATE) <= ?
+            GROUP BY nv.MaNV, nv.HoTen
+            ORDER BY TongDoanhThu DESC
+        """
+
+        cursor.execute(query_employee_stats, (from_date, to_date))
+        employee_rows = cursor.fetchall()
+
+        employee_stats = []
+        for row in employee_rows:
+            employee_stats.append({
+                'TenNhanVien': row[0],
+                'SoDonHang': row[1],
+                'TongDoanhThu': float(row[2]) if row[2] else 0
+            })
+
+        # Query doanh số theo sản phẩm
+        query_product_stats = """
+            SELECT
+                l.TenSP,
+                SUM(ct.SoLuong) as SoLuongBan,
+                SUM(ct.SoLuong * ct.GiaBan) as DoanhThu
+            FROM ChiTietDonHang ct
+            INNER JOIN Laptop l ON ct.MaSP = l.MaSP
+            INNER JOIN DonHang dh ON ct.MaDH = dh.MaDH
+            WHERE CAST(dh.ThoiGianTao AS DATE) >= ?
+              AND CAST(dh.ThoiGianTao AS DATE) <= ?
+            GROUP BY l.MaSP, l.TenSP
+            ORDER BY SoLuongBan DESC
+        """
+
+        cursor.execute(query_product_stats, (from_date, to_date))
+        product_rows = cursor.fetchall()
+
+        product_stats = []
+        for row in product_rows:
+            product_stats.append({
+                'TenSP': row[0],
+                'SoLuongBan': row[1],
+                'DoanhThu': float(row[2]) if row[2] else 0
+            })
+
+        # Top 5 sản phẩm bán chạy
+        top_products = product_stats[:5]
 
         conn.close()
 
@@ -391,9 +543,13 @@ def thong_ke_doanh_thu():
             "summary": {
                 "total_orders": total_orders,
                 "total_revenue": total_revenue,
+                "completed_revenue": completed_revenue,
                 "avg_revenue": avg_revenue
             },
-            "orders": orders
+            "orders": orders,
+            "employee_stats": employee_stats,
+            "product_stats": product_stats,
+            "top_products": top_products
         }), 200
 
     except Exception as e:
@@ -505,20 +661,123 @@ def add_laptop():
     """Thêm laptop mới vào database"""
     data = request.get_json()
 
-    TenSP = data.get('TenSP')
-    Hang = data.get('Hang')
+    TenSP = data.get('TenSP', '').strip()
+    Hang = data.get('Hang', '').strip()
     GiaBan = data.get('GiaBan')
-    CauHinh = data.get('CauHinh')
+    CauHinh = data.get('CauHinh', '').strip() if data.get('CauHinh') else None
     Kho = data.get('Kho', 0)
     MaNCC = data.get('MaNCC')
     NgayNhap = data.get('NgayNhap')
-    TrangThai = data.get('TrangThai')
+    TrangThai = data.get('TrangThai', 'Active')
 
+    # Validation cơ bản
     if not TenSP or not Hang or GiaBan is None:
         return jsonify({
             "status": "error",
             "message": "Thiếu thông tin bắt buộc (Tên SP, Hãng, Giá Bán)"
         }), 400
+
+    # Validate độ dài tên sản phẩm
+    if len(TenSP) < 3:
+        return jsonify({
+            "status": "error",
+            "message": "Tên sản phẩm phải có ít nhất 3 ký tự"
+        }), 400
+
+    if len(TenSP) > 255:
+        return jsonify({
+            "status": "error",
+            "message": "Tên sản phẩm không được quá 255 ký tự"
+        }), 400
+
+    # Validate hãng
+    if len(Hang) < 2:
+        return jsonify({
+            "status": "error",
+            "message": "Tên hãng phải có ít nhất 2 ký tự"
+        }), 400
+
+    # Validate giá bán
+    try:
+        GiaBan = float(GiaBan)
+        if GiaBan <= 0:
+            return jsonify({
+                "status": "error",
+                "message": "Giá bán phải lớn hơn 0"
+            }), 400
+        if GiaBan > 1000000000:  # 1 tỷ
+            return jsonify({
+                "status": "error",
+                "message": "Giá bán không hợp lệ (quá lớn)"
+            }), 400
+    except (ValueError, TypeError):
+        return jsonify({
+            "status": "error",
+            "message": "Giá bán phải là số"
+        }), 400
+
+    # Validate kho
+    try:
+        Kho = int(Kho)
+        if Kho < 0:
+            return jsonify({
+                "status": "error",
+                "message": "Số lượng kho không được âm"
+            }), 400
+        if Kho > 100000:
+            return jsonify({
+                "status": "error",
+                "message": "Số lượng kho không hợp lệ (quá lớn)"
+            }), 400
+    except (ValueError, TypeError):
+        return jsonify({
+            "status": "error",
+            "message": "Số lượng kho phải là số nguyên"
+        }), 400
+
+    # Validate ngày nhập (không được tương lai)
+    if NgayNhap:
+        try:
+            ngay_nhap_date = datetime.datetime.strptime(NgayNhap, '%Y-%m-%d').date()
+            hom_nay = datetime.datetime.now().date()
+            if ngay_nhap_date > hom_nay:
+                return jsonify({
+                    "status": "error",
+                    "message": "Ngày nhập không được là tương lai"
+                }), 400
+        except ValueError:
+            return jsonify({
+                "status": "error",
+                "message": "Định dạng ngày nhập không hợp lệ (yêu cầu: YYYY-MM-DD)"
+            }), 400
+
+    # Validate trạng thái
+    valid_statuses = ['Active', 'Ngừng kinh doanh']
+    if TrangThai not in valid_statuses:
+        return jsonify({
+            "status": "error",
+            "message": f"Trạng thái không hợp lệ. Phải là: {', '.join(valid_statuses)}"
+        }), 400
+
+    # Validate MaNCC nếu có
+    if MaNCC:
+        try:
+            MaNCC = int(MaNCC)
+            conn_temp = get_db_connection()
+            cursor_temp = conn_temp.cursor()
+            cursor_temp.execute("SELECT MaNCC FROM NhaCungCap WHERE MaNCC = ?", (MaNCC,))
+            if not cursor_temp.fetchone():
+                conn_temp.close()
+                return jsonify({
+                    "status": "error",
+                    "message": f"Không tìm thấy nhà cung cấp với mã {MaNCC}"
+                }), 400
+            conn_temp.close()
+        except (ValueError, TypeError):
+            return jsonify({
+                "status": "error",
+                "message": "Mã nhà cung cấp phải là số"
+            }), 400
 
     try:
         conn = get_db_connection()
@@ -562,20 +821,123 @@ def update_laptop(maSP):
     """Cập nhật thông tin laptop"""
     data = request.get_json()
 
-    TenSP = data.get('TenSP')
-    Hang = data.get('Hang')
+    TenSP = data.get('TenSP', '').strip()
+    Hang = data.get('Hang', '').strip()
     GiaBan = data.get('GiaBan')
-    CauHinh = data.get('CauHinh')
+    CauHinh = data.get('CauHinh', '').strip() if data.get('CauHinh') else None
     Kho = data.get('Kho')
     MaNCC = data.get('MaNCC')
     NgayNhap = data.get('NgayNhap')
-    TrangThai = data.get('TrangThai')
+    TrangThai = data.get('TrangThai', 'Active')
 
+    # Validation cơ bản
     if not TenSP or not Hang or GiaBan is None:
         return jsonify({
             "status": "error",
             "message": "Thiếu thông tin bắt buộc (Tên SP, Hãng, Giá Bán)"
         }), 400
+
+    # Validate độ dài tên sản phẩm
+    if len(TenSP) < 3:
+        return jsonify({
+            "status": "error",
+            "message": "Tên sản phẩm phải có ít nhất 3 ký tự"
+        }), 400
+
+    if len(TenSP) > 255:
+        return jsonify({
+            "status": "error",
+            "message": "Tên sản phẩm không được quá 255 ký tự"
+        }), 400
+
+    # Validate hãng
+    if len(Hang) < 2:
+        return jsonify({
+            "status": "error",
+            "message": "Tên hãng phải có ít nhất 2 ký tự"
+        }), 400
+
+    # Validate giá bán
+    try:
+        GiaBan = float(GiaBan)
+        if GiaBan <= 0:
+            return jsonify({
+                "status": "error",
+                "message": "Giá bán phải lớn hơn 0"
+            }), 400
+        if GiaBan > 1000000000:
+            return jsonify({
+                "status": "error",
+                "message": "Giá bán không hợp lệ (quá lớn)"
+            }), 400
+    except (ValueError, TypeError):
+        return jsonify({
+            "status": "error",
+            "message": "Giá bán phải là số"
+        }), 400
+
+    # Validate kho
+    try:
+        Kho = int(Kho)
+        if Kho < 0:
+            return jsonify({
+                "status": "error",
+                "message": "Số lượng kho không được âm"
+            }), 400
+        if Kho > 100000:
+            return jsonify({
+                "status": "error",
+                "message": "Số lượng kho không hợp lệ (quá lớn)"
+            }), 400
+    except (ValueError, TypeError):
+        return jsonify({
+            "status": "error",
+            "message": "Số lượng kho phải là số nguyên"
+        }), 400
+
+    # Validate ngày nhập
+    if NgayNhap:
+        try:
+            ngay_nhap_date = datetime.datetime.strptime(NgayNhap, '%Y-%m-%d').date()
+            hom_nay = datetime.datetime.now().date()
+            if ngay_nhap_date > hom_nay:
+                return jsonify({
+                    "status": "error",
+                    "message": "Ngày nhập không được là tương lai"
+                }), 400
+        except ValueError:
+            return jsonify({
+                "status": "error",
+                "message": "Định dạng ngày nhập không hợp lệ (yêu cầu: YYYY-MM-DD)"
+            }), 400
+
+    # Validate trạng thái
+    valid_statuses = ['Active', 'Ngừng kinh doanh']
+    if TrangThai not in valid_statuses:
+        return jsonify({
+            "status": "error",
+            "message": f"Trạng thái không hợp lệ. Phải là: {', '.join(valid_statuses)}"
+        }), 400
+
+    # Validate MaNCC nếu có
+    if MaNCC:
+        try:
+            MaNCC = int(MaNCC)
+            conn_temp = get_db_connection()
+            cursor_temp = conn_temp.cursor()
+            cursor_temp.execute("SELECT MaNCC FROM NhaCungCap WHERE MaNCC = ?", (MaNCC,))
+            if not cursor_temp.fetchone():
+                conn_temp.close()
+                return jsonify({
+                    "status": "error",
+                    "message": f"Không tìm thấy nhà cung cấp với mã {MaNCC}"
+                }), 400
+            conn_temp.close()
+        except (ValueError, TypeError):
+            return jsonify({
+                "status": "error",
+                "message": "Mã nhà cung cấp phải là số"
+            }), 400
 
     try:
         conn = get_db_connection()
@@ -668,6 +1030,83 @@ def delete_laptop(maSP):
                 pass
         print("Lỗi:", e)
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/xem_hoa_don/<int:order_id>')
+def xem_hoa_don(order_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Lấy thông tin đơn hàng
+        cursor.execute("""
+            SELECT MaDH, MaKH, MaNV, NgayGiao, ThoiGianTao, TrangThaiXuLy, TongTien, GhiChu
+            FROM DonHang WHERE MaDH = ?
+        """, (order_id,))
+        don_hang = cursor.fetchone()
+
+        if not don_hang:
+            conn.close()
+            return "Không tìm thấy đơn hàng", 404
+
+        # Lấy thông tin khách hàng
+        cursor.execute("SELECT MaKH, HoTen, SDT, DiaChi FROM KhachHang WHERE MaKH = ?", (don_hang[1],))
+        khach_hang = cursor.fetchone()
+
+        # Lấy thông tin nhân viên
+        cursor.execute("SELECT MaNV, HoTen, SDT FROM NhanVien WHERE MaNV = ?", (don_hang[2],))
+        nhan_vien = cursor.fetchone()
+
+        # Lấy chi tiết sản phẩm
+        cursor.execute("""
+            SELECT L.TenSP, CT.SoLuong, CT.GiaBan, (CT.SoLuong * CT.GiaBan) as ThanhTien
+            FROM ChiTietDonHang CT
+            JOIN Laptop L ON CT.MaSP = L.MaSP
+            WHERE CT.MaDH = ?
+        """, (order_id,))
+        chi_tiet = cursor.fetchall()
+
+        conn.close()
+
+        # Format dữ liệu
+        def format_tien(so):
+            return "{:,.0f} ₫".format(float(so)).replace(',', '.')
+
+        # Chuẩn bị danh sách sản phẩm
+        danh_sach_sp = []
+        tong_sl = 0
+        for item in chi_tiet:
+            tong_sl += int(item[1])
+            danh_sach_sp.append({
+                'ten': item[0],
+                'soluong': int(item[1]),
+                'gia': format_tien(item[2]),
+                'thanhtien': format_tien(item[3])
+            })
+
+        # Chuẩn bị dữ liệu cho template
+        data = {
+            'ma_dh': don_hang[0],
+            'ngay_giao': don_hang[3].strftime('%d/%m/%Y') if don_hang[3] else '',
+            'ngay_tao': don_hang[4].strftime('%d/%m/%Y %H:%M') if don_hang[4] else '',
+            'trang_thai': don_hang[5] or '',
+            'ghi_chu': don_hang[7] or '',
+            'kh_ma': khach_hang[0] if khach_hang else '',
+            'kh_ten': khach_hang[1] if khach_hang else '',
+            'kh_sdt': khach_hang[2] if khach_hang else '',
+            'kh_diachi': khach_hang[3] if khach_hang else 'Chưa cập nhật',
+            'nv_ma': nhan_vien[0] if nhan_vien else '',
+            'nv_ten': nhan_vien[1] if nhan_vien else '',
+            'nv_sdt': nhan_vien[2] if nhan_vien else '',
+            'san_pham': danh_sach_sp,
+            'tong_soluong': tong_sl,
+            'tong_tien': format_tien(don_hang[6])
+        }
+
+        return render_template('xemHoaDon.html', **data)
+
+    except Exception as e:
+        return f"Lỗi: {str(e)}", 500
 
 
 if __name__ == '__main__':

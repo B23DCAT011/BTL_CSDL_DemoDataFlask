@@ -196,6 +196,11 @@
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('NgaySinh').setAttribute('max', today);
 
+    // Set min date (ít nhất 13 tuổi)
+    const minDate = new Date();
+    minDate.setFullYear(minDate.getFullYear() - 13);
+    document.getElementById('NgaySinh').setAttribute('max', minDate.toISOString().split('T')[0]);
+
     function resetForm() {
       document.getElementById('customerForm').reset();
       document.getElementById('result').style.display = 'none';
@@ -204,18 +209,73 @@
     document.getElementById('customerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      // Trim và validate dữ liệu
+      const hoTen = document.getElementById('HoTen').value.trim();
+      const sdt = document.getElementById('SDT').value.trim();
+      const diaChi = document.getElementById('DiaChi').value.trim();
+
+      // Validation frontend
+      if (!hoTen || hoTen.length < 2) {
+        alert('Họ tên phải có ít nhất 2 ký tự!');
+        return;
+      }
+
+      if (hoTen.length > 100) {
+        alert('Họ tên không được quá 100 ký tự!');
+        return;
+      }
+
+      // Kiểm tra họ tên không chỉ toàn khoảng trắng
+      if (!/\S/.test(hoTen)) {
+        alert('Họ tên không hợp lệ!');
+        return;
+      }
+
+      if (!sdt) {
+        alert('Số điện thoại là bắt buộc!');
+        return;
+      }
+
+      if (!/^\d{10,11}$/.test(sdt)) {
+        alert('Số điện thoại phải có 10-11 chữ số!');
+        return;
+      }
+
+      // Validate ngày sinh nếu có
+      const ngaySinh = document.getElementById('NgaySinh').value;
+      if (ngaySinh) {
+        const ngaySinhDate = new Date(ngaySinh);
+        const homNay = new Date();
+        const tuoi = (homNay - ngaySinhDate) / (1000 * 60 * 60 * 24 * 365.25);
+
+        if (ngaySinhDate > homNay) {
+          alert('Ngày sinh không được là tương lai!');
+          return;
+        }
+
+        if (tuoi < 13) {
+          alert('Khách hàng phải ít nhất 13 tuổi!');
+          return;
+        }
+
+        if (tuoi > 150) {
+          alert('Ngày sinh không hợp lệ!');
+          return;
+        }
+      }
+
       // Lấy giá trị giới tính
       const gioiTinh = document.querySelector('input[name="GioiTinh"]:checked').value;
 
       // Lấy giá trị ngày sinh (có thể null)
-      const ngaySinh = document.getElementById('NgaySinh').value || null;
+      const ngaySinhValue = ngaySinh || null;
 
       const customerData = {
-        HoTen: document.getElementById('HoTen').value.trim(),
+        HoTen: hoTen,
         GioiTinh: gioiTinh,
-        NgaySinh: ngaySinh,
-        SDT: document.getElementById('SDT').value.trim(),
-        DiaChi: document.getElementById('DiaChi').value.trim() || null,
+        NgaySinh: ngaySinhValue,
+        SDT: sdt,
+        DiaChi: diaChi || null,
         TrangThai: document.getElementById('TrangThai').value
       };
 

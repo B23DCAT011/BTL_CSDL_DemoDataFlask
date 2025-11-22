@@ -235,6 +235,25 @@
     const loadingDiv = document.getElementById('loading');
     const submitBtn = document.getElementById('submitBtn');
 
+    // Set ngày tối đa là hôm nay
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('NgayNhap').setAttribute('max', today);
+
+    // Validate chỉ nhập số cho giá bán
+    document.getElementById('GiaBan').addEventListener('input', (e) => {
+      if (e.target.value < 0) e.target.value = 0;
+    });
+
+    // Validate chỉ nhập số cho kho
+    document.getElementById('Kho').addEventListener('input', (e) => {
+      if (e.target.value < 0) e.target.value = 0;
+    });
+
+    // Validate chỉ nhập số cho MaNCC
+    document.getElementById('MaNCC').addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/[^0-9]/g, '');
+    });
+
     async function loadLaptopData() {
       try {
         const response = await fetch(`/api/laptop/${maSP}`);
@@ -270,12 +289,54 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      // Trim và validate dữ liệu
+      const tenSP = document.getElementById('TenSP').value.trim();
+      const hang = document.getElementById('Hang').value.trim();
+      const giaBan = parseFloat(document.getElementById('GiaBan').value);
+      const kho = parseInt(document.getElementById('Kho').value);
+
+      // Validation
+      if (!tenSP || tenSP.length < 3) {
+        alert('Tên sản phẩm phải có ít nhất 3 ký tự!');
+        return;
+      }
+
+      if (tenSP.length > 255) {
+        alert('Tên sản phẩm không được quá 255 ký tự!');
+        return;
+      }
+
+      if (!hang || hang.length < 2) {
+        alert('Tên hãng phải có ít nhất 2 ký tự!');
+        return;
+      }
+
+      if (isNaN(giaBan) || giaBan <= 0) {
+        alert('Giá bán phải lớn hơn 0!');
+        return;
+      }
+
+      if (giaBan > 1000000000) {
+        alert('Giá bán quá lớn (tối đa 1 tỷ VNĐ)!');
+        return;
+      }
+
+      if (isNaN(kho) || kho < 0) {
+        alert('Số lượng kho không hợp lệ!');
+        return;
+      }
+
+      if (kho > 100000) {
+        alert('Số lượng kho quá lớn!');
+        return;
+      }
+
       const formData = {
-        TenSP: document.getElementById('TenSP').value,
-        Hang: document.getElementById('Hang').value,
-        GiaBan: parseFloat(document.getElementById('GiaBan').value),
-        CauHinh: document.getElementById('CauHinh').value || null,
-        Kho: parseInt(document.getElementById('Kho').value),
+        TenSP: tenSP,
+        Hang: hang,
+        GiaBan: giaBan,
+        CauHinh: document.getElementById('CauHinh').value.trim() || null,
+        Kho: kho,
         MaNCC: document.getElementById('MaNCC').value ? parseInt(document.getElementById('MaNCC').value) : null,
         NgayNhap: document.getElementById('NgayNhap').value || null,
         TrangThai: document.getElementById('TrangThai').value
